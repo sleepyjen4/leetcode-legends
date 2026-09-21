@@ -12,22 +12,27 @@ A tracker for the deal: 3+ LeetCode points a day (easy=1, medium=2, hard=3) or i
 ## Local setup
 
 1. **Install dependencies**
+
    ```bash
    npm install
    ```
 
-2. **Get a Postgres database.** The easiest free option is [Neon](https://neon.tech) — sign up, create a project, and copy the connection string it gives you. (This becomes the same database you'll use in production if you connect it through Vercel's Storage tab instead — either works.)
+2. **Get a Postgres database.** [Neon](https://neon.tech) — sign up, create a project, and copy both connection strings it gives you: the pooled one (default) and the direct one (toggle "Pooled connection" off, or swap `-pooler` out of the hostname).
 
 3. **Set up your `.env`**
+
    ```bash
    cp .env.example .env
    ```
+
    Then fill in:
-   - `DATABASE_URL` — the connection string from step 2
+   - `DATABASE_URL` — the **pooled** connection string from step 2 (used at runtime)
+   - `DIRECT_DATABASE_URL` — the **direct** (unpooled) connection string (used only by Prisma Migrate — pooled connections don't support the advisory lock migrations need)
    - `GROUP_TIMEZONE` — an IANA timezone name (e.g. `Australia/Sydney`, `America/New_York`) that the whole group's "day" gets scored against
    - leave `CRON_SECRET` blank locally
 
 4. **Create the database tables**
+
    ```bash
    npx prisma migrate dev --name init
    ```
@@ -38,19 +43,8 @@ A tracker for the deal: 3+ LeetCode points a day (easy=1, medium=2, hard=3) or i
    ```
    Open [http://localhost:3000](http://localhost:3000), go to **Manage friends**, and add everyone with their real LeetCode usernames. Then hit **Sync now** on the dashboard to pull real data.
 
-## Deploying (so everyone can use it)
-
-1. Push this project to a GitHub repo.
-2. Go to [vercel.com](https://vercel.com), sign in, and import that repo as a new project.
-3. In the project's **Storage** tab, create/connect a **Postgres** database — this sets `DATABASE_URL` for you automatically.
-4. In **Settings → Environment Variables**, add:
-   - `GROUP_TIMEZONE` — same as above
-   - `CRON_SECRET` — any random string (e.g. run `openssl rand -hex 16`); this stops random people from triggering syncs by hitting the URL directly
-5. Deploy. Vercel will run migrations automatically as part of the build (`npm run build` runs `prisma migrate deploy` first).
-6. Vercel Cron (configured in [`vercel.json`](vercel.json)) will hit `/api/sync` once a day automatically — no extra setup needed. It defaults to 16:00 UTC; edit the `schedule` in `vercel.json` if you want it to run at a specific time relative to `GROUP_TIMEZONE` (cron schedules in `vercel.json` are always UTC).
-7. Share the deployed URL with the group.
-
 ## Notes
 
 - The LeetCode data comes from LeetCode's public (unofficial) endpoints — no API key needed, but also no guarantee LeetCode won't change them. If syncing starts failing for everyone at once, that's the first place to check (`src/lib/leetcode.ts`).
 - There's no auth — anyone with the link can view the dashboard and add/remove friends on `/manage`. That matches the "pick your name, we trust each other" spirit of the deal, but means don't share the link outside the group.
+- **Windows: `npm install` fails with `EPERM ... query_engine-windows.dll.node`** if `npm run dev` is still running in another terminal — it holds the Prisma query engine file open, so `prisma generate` (which runs automatically via `postinstall`) can't overwrite it. Stop the dev server first, then retry `npm install`.
