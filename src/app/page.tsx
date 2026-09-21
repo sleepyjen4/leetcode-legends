@@ -19,10 +19,11 @@ export default async function DashboardPage() {
   const board = friendsRaw
     .map((friend) => {
       const todayResult = friend.results.find(
-        (r) => r.date.getTime() === todayStart.getTime()
+        (r) => r.date.getTime() === todayStart.getTime(),
       );
       const owedDays = friend.results.filter(
-        (r) => !r.metGoal && !r.debtPaid && r.date.getTime() < todayStart.getTime()
+        (r) =>
+          !r.metGoal && !r.debtPaid && r.date.getTime() < todayStart.getTime(),
       ).length;
       return {
         friend,
@@ -30,7 +31,11 @@ export default async function DashboardPage() {
         owed: owedDays * DEBT_PER_MISSED_DAY,
       };
     })
-    .sort((a, b) => (b.todayResult?.pointsEarned ?? -1) - (a.todayResult?.pointsEarned ?? -1));
+    .sort(
+      (a, b) =>
+        (b.todayResult?.pointsEarned ?? -1) -
+        (a.todayResult?.pointsEarned ?? -1),
+    );
 
   return (
     <main className="relative z-10 mx-auto w-full max-w-3xl flex-1 px-5 py-14 sm:py-20">
@@ -41,13 +46,14 @@ export default async function DashboardPage() {
           </p>
           <h1 className="title-flicker mt-2 font-display text-4xl font-bold uppercase tracking-tight text-text-primary sm:text-5xl">
             Leetcode{" "}
-            <span className="bg-gradient-to-r from-legend to-pending bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-legend to-pending bg-clip-text text-transparent">
               Legends
             </span>
           </h1>
           <p className="mt-3 max-w-md font-mono text-sm text-text-muted">
-            {DAILY_GOAL_POINTS}+ points a day or it&apos;s ${DEBT_PER_MISSED_DAY} to the
-            group. Auto-verified against LeetCode &mdash; no excuses, no honor system.
+            {DAILY_GOAL_POINTS}+ points a day or it&apos;s $
+            {DEBT_PER_MISSED_DAY} to the group. Auto-verified against LeetCode
+            no excuses, no honor system.
           </p>
         </div>
         <Link
@@ -59,7 +65,11 @@ export default async function DashboardPage() {
         </Link>
       </header>
 
-      <form action={triggerSyncNow} className="rise-in mb-8" style={{ animationDelay: "120ms" }}>
+      <form
+        action={triggerSyncNow}
+        className="rise-in mb-8"
+        style={{ animationDelay: "120ms" }}
+      >
         <button
           type="submit"
           className="group relative overflow-hidden border border-border-strong bg-surface px-5 py-2.5 font-mono text-xs font-bold tracking-[0.2em] text-legend uppercase transition-all hover:bg-legend-dim hover:shadow-[0_0_20px_rgba(93,255,160,0.25)]"
@@ -68,7 +78,10 @@ export default async function DashboardPage() {
         </button>
       </form>
 
-      <div className="rise-in mb-3 flex items-baseline justify-between" style={{ animationDelay: "160ms" }}>
+      <div
+        className="rise-in mb-3 flex items-baseline justify-between"
+        style={{ animationDelay: "160ms" }}
+      >
         <h2 className="font-display text-sm font-semibold tracking-[0.25em] text-text-muted uppercase">
           Today&apos;s Standings
         </h2>
@@ -82,7 +95,10 @@ export default async function DashboardPage() {
         >
           <span className="blink-cursor text-legend">&gt; no legends yet</span>
           <br />
-          <Link href="/manage" className="mt-2 inline-block text-legend underline underline-offset-4">
+          <Link
+            href="/manage"
+            className="mt-2 inline-block text-legend underline underline-offset-4"
+          >
             recruit the group
           </Link>
         </p>
@@ -116,7 +132,9 @@ export default async function DashboardPage() {
                 >
                   <span
                     className={`hex-badge flex h-9 w-9 shrink-0 items-center justify-center font-display text-sm font-bold ${
-                      i === 0 ? "bg-pending text-bg" : "bg-white/10 text-text-muted"
+                      i === 0
+                        ? "bg-pending text-bg"
+                        : "bg-white/10 text-text-muted"
                     }`}
                   >
                     {i + 1}
@@ -147,7 +165,9 @@ export default async function DashboardPage() {
                       </span>
                       <p className="mt-1 font-mono text-xs text-text-muted">
                         {todayResult ? `${todayResult.pointsEarned} pt` : "—"}
-                        {todayResult && todayResult.pointsEarned !== 1 ? "s" : ""}
+                        {todayResult && todayResult.pointsEarned !== 1
+                          ? "s"
+                          : ""}
                       </p>
                     </div>
                   </div>

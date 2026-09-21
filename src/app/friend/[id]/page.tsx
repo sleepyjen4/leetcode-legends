@@ -3,7 +3,12 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { GROUP_TIMEZONE } from "@/lib/scoring";
 import { todayInTimezone, zonedMidnightUtc, formatDateLabel } from "@/lib/date";
-import { DAILY_GOAL_POINTS, DEBT_PER_MISSED_DAY } from "@/lib/leetcode";
+import {
+  DAILY_GOAL_POINTS,
+  DEBT_PER_MISSED_DAY,
+  leetcodeProblemUrl,
+  slugToTitle,
+} from "@/lib/leetcode";
 import { markDebtPaid } from "@/lib/actions";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +31,7 @@ export default async function FriendPage({
   const todayStart = zonedMidnightUtc(todayStr, GROUP_TIMEZONE);
 
   const owedDays = friend.results.filter(
-    (r) => !r.metGoal && !r.debtPaid && r.date.getTime() < todayStart.getTime()
+    (r) => !r.metGoal && !r.debtPaid && r.date.getTime() < todayStart.getTime(),
   ).length;
   const owed = owedDays * DEBT_PER_MISSED_DAY;
 
@@ -39,12 +44,17 @@ export default async function FriendPage({
         ◂ back to standings
       </Link>
 
-      <div className="rise-in mt-5 mb-10 flex items-end justify-between gap-4" style={{ animationDelay: "60ms" }}>
+      <div
+        className="rise-in mt-5 mb-10 flex items-end justify-between gap-4"
+        style={{ animationDelay: "60ms" }}
+      >
         <div>
           <h1 className="font-display text-3xl font-bold uppercase tracking-tight text-text-primary">
             {friend.name}
           </h1>
-          <p className="mt-1 font-mono text-xs text-text-faint">@{friend.leetcodeUsername}</p>
+          <p className="mt-1 font-mono text-xs text-text-faint">
+            @{friend.leetcodeUsername}
+          </p>
         </div>
         <div className="border border-border bg-surface px-4 py-2.5 text-right">
           <p className="font-mono text-[10px] tracking-widest text-text-muted uppercase">
@@ -61,8 +71,13 @@ export default async function FriendPage({
       </div>
 
       {friend.results.length === 0 ? (
-        <p className="rise-in font-mono text-sm text-text-muted" style={{ animationDelay: "120ms" }}>
-          <span className="blink-cursor text-legend">&gt; no synced days yet</span>
+        <p
+          className="rise-in font-mono text-sm text-text-muted"
+          style={{ animationDelay: "120ms" }}
+        >
+          <span className="blink-cursor text-legend">
+            &gt; no synced days yet
+          </span>
           <br />
           Hit &quot;Sync now&quot; on the dashboard.
         </p>
@@ -73,17 +88,43 @@ export default async function FriendPage({
             return (
               <li
                 key={result.id}
-                className="rise-in flex items-center justify-between gap-4 border border-border bg-surface px-4 py-3.5"
+                className="rise-in flex items-start justify-between gap-4 border border-border bg-surface px-4 py-3.5"
                 style={{ animationDelay: `${120 + i * 50}ms` }}
               >
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="font-display text-sm font-semibold text-text-primary">
                     {formatDateLabel(result.date)}
                   </p>
-                  <p className="truncate font-mono text-xs text-text-faint">
-                    {result.pointsEarned} pt{result.pointsEarned === 1 ? "" : "s"}
-                    {result.problemSlugs.length > 0 && ` · ${result.problemSlugs.join(", ")}`}
+                  <p className="font-mono text-xs text-text-faint">
+                    {result.pointsEarned} pt
+                    {result.pointsEarned === 1 ? "" : "s"}
                   </p>
+
+                  {result.problemSlugs.length > 0 && (
+                    <details className="group mt-1.5">
+                      <summary className="cursor-pointer list-none font-mono text-xs text-text-muted transition-colors hover:text-legend">
+                        <span className="mr-1 inline-block transition-transform duration-200 group-open:rotate-90">
+                          ▸
+                        </span>
+                        {result.problemSlugs.length} problem
+                        {result.problemSlugs.length === 1 ? "" : "s"}
+                      </summary>
+                      <ul className="mt-2 flex flex-col gap-1.5 border-l border-border pl-3">
+                        {result.problemSlugs.map((slug: string) => (
+                          <li key={slug}>
+                            <a
+                              href={leetcodeProblemUrl(slug)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-mono text-xs text-legend underline-offset-2 hover:underline"
+                            >
+                              {slugToTitle(slug)} ↗
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
                   {result.metGoal ? (
@@ -108,7 +149,9 @@ export default async function FriendPage({
                         <button
                           type="submit"
                           className={`font-mono text-[10px] font-bold tracking-widest uppercase underline-offset-4 hover:underline ${
-                            result.debtPaid ? "text-text-faint" : "text-text-primary"
+                            result.debtPaid
+                              ? "text-text-faint"
+                              : "text-text-primary"
                           }`}
                         >
                           {result.debtPaid ? "paid ✓ (undo)" : "mark $5 paid"}

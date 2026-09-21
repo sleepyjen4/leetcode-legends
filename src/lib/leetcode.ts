@@ -1,19 +1,13 @@
-// Thin client around LeetCode's public (unofficial) endpoints. No auth
-// required for public profile data. Field names come from the widely-used
-// community reverse-engineering of these endpoints; LeetCode could change
-// them without notice, so failures here should surface clearly rather than
-// silently scoring someone a zero.
-
 const LEETCODE_GRAPHQL_URL = "https://leetcode.com/graphql";
 
 export interface RecentAcSubmission {
   titleSlug: string;
-  timestamp: string; // unix seconds, as a string
+  timestamp: string;
 }
 
 export async function fetchRecentAcSubmissions(
   username: string,
-  limit = 50
+  limit = 50,
 ): Promise<RecentAcSubmission[]> {
   const query = `
     query recentAcSubmissions($username: String!, $limit: Int!) {
@@ -30,12 +24,14 @@ export async function fetchRecentAcSubmissions(
     cache: "no-store",
   });
   if (!res.ok) {
-    throw new Error(`LeetCode API returned ${res.status} for user "${username}"`);
+    throw new Error(
+      `LeetCode API returned ${res.status} for user "${username}"`,
+    );
   }
   const json = await res.json();
   if (json.errors) {
     throw new Error(
-      `LeetCode API error for user "${username}": ${JSON.stringify(json.errors)}`
+      `LeetCode API error for user "${username}": ${JSON.stringify(json.errors)}`,
     );
   }
   return json.data?.recentAcSubmissionList ?? [];
@@ -66,7 +62,10 @@ export async function fetchAllProblemDifficulties(): Promise<
   const json: AllProblemsResponse = await res.json();
   const map = new Map<string, "Easy" | "Medium" | "Hard">();
   for (const p of json.stat_status_pairs) {
-    map.set(p.stat.question__title_slug, DIFFICULTY_BY_LEVEL[p.difficulty.level] ?? "Easy");
+    map.set(
+      p.stat.question__title_slug,
+      DIFFICULTY_BY_LEVEL[p.difficulty.level] ?? "Easy",
+    );
   }
   return map;
 }
@@ -79,3 +78,14 @@ export const POINTS_BY_DIFFICULTY: Record<string, number> = {
 
 export const DAILY_GOAL_POINTS = 3;
 export const DEBT_PER_MISSED_DAY = 5;
+
+export function leetcodeProblemUrl(titleSlug: string): string {
+  return `https://leetcode.com/problems/${titleSlug}/`;
+}
+
+export function slugToTitle(titleSlug: string): string {
+  return titleSlug
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
