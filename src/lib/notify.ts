@@ -39,7 +39,7 @@ export function formatDailyMessage(
       : `${parts.join(", ")} today.`;
 
   return [
-    `### Here are the results from ${dateStr}`,
+    `### Here are the results from ${dateStr} 🔥 `,
     "```",
     ...lines,
     "```",
