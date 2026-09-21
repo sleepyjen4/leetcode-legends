@@ -31,54 +31,73 @@ export default async function FriendPage({
   const owed = owedDays * DEBT_PER_MISSED_DAY;
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10">
-      <Link href="/" className="text-sm text-neutral-500 hover:underline">
-        ← Back to dashboard
+    <main className="relative z-10 mx-auto w-full max-w-2xl flex-1 px-5 py-14 sm:py-20">
+      <Link
+        href="/"
+        className="rise-in inline-block font-mono text-xs tracking-widest text-text-muted uppercase transition-colors hover:text-legend"
+      >
+        ◂ back to standings
       </Link>
 
-      <div className="mt-4 mb-8 flex items-center justify-between">
+      <div className="rise-in mt-5 mb-10 flex items-end justify-between gap-4" style={{ animationDelay: "60ms" }}>
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{friend.name}</h1>
-          <p className="text-sm text-neutral-500">@{friend.leetcodeUsername}</p>
+          <h1 className="font-display text-3xl font-bold uppercase tracking-tight text-text-primary">
+            {friend.name}
+          </h1>
+          <p className="mt-1 font-mono text-xs text-text-faint">@{friend.leetcodeUsername}</p>
         </div>
-        <div className="text-right">
-          <p className="text-xs text-neutral-500">Total owed</p>
-          <p className={`text-xl font-semibold ${owed > 0 ? "text-red-600" : "text-green-600"}`}>
+        <div className="border border-border bg-surface px-4 py-2.5 text-right">
+          <p className="font-mono text-[10px] tracking-widest text-text-muted uppercase">
+            Total owed
+          </p>
+          <p
+            className={`font-display text-2xl font-bold ${
+              owed > 0 ? "text-bounty" : "text-legend"
+            }`}
+          >
             ${owed}
           </p>
         </div>
       </div>
 
       {friend.results.length === 0 ? (
-        <p className="text-sm text-neutral-500">
-          No synced days yet. Hit &quot;Sync now&quot; on the dashboard.
+        <p className="rise-in font-mono text-sm text-text-muted" style={{ animationDelay: "120ms" }}>
+          <span className="blink-cursor text-legend">&gt; no synced days yet</span>
+          <br />
+          Hit &quot;Sync now&quot; on the dashboard.
         </p>
       ) : (
-        <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 bg-white">
-          {friend.results.map((result) => {
+        <ul className="flex flex-col gap-2.5">
+          {friend.results.map((result, i) => {
             const isToday = result.date.getTime() === todayStart.getTime();
             return (
-              <li key={result.id} className="flex items-center justify-between gap-4 px-4 py-3">
-                <div>
-                  <p className="text-sm font-medium">{formatDateLabel(result.date)}</p>
-                  <p className="text-xs text-neutral-500">
+              <li
+                key={result.id}
+                className="rise-in flex items-center justify-between gap-4 border border-border bg-surface px-4 py-3.5"
+                style={{ animationDelay: `${120 + i * 50}ms` }}
+              >
+                <div className="min-w-0">
+                  <p className="font-display text-sm font-semibold text-text-primary">
+                    {formatDateLabel(result.date)}
+                  </p>
+                  <p className="truncate font-mono text-xs text-text-faint">
                     {result.pointsEarned} pt{result.pointsEarned === 1 ? "" : "s"}
                     {result.problemSlugs.length > 0 && ` · ${result.problemSlugs.join(", ")}`}
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex shrink-0 items-center gap-3">
                   {result.metGoal ? (
-                    <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">
-                      Done
+                    <span className="border border-legend/40 bg-legend-dim px-2 py-1 font-mono text-[10px] font-bold tracking-widest text-legend uppercase">
+                      done
                     </span>
                   ) : isToday ? (
-                    <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">
-                      In progress
+                    <span className="pulse-pending border border-pending/40 bg-pending-dim px-2 py-1 font-mono text-[10px] font-bold tracking-widest text-pending uppercase">
+                      in progress
                     </span>
                   ) : (
                     <>
-                      <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700">
-                        Missed
+                      <span className="border border-bounty/40 bg-bounty-dim px-2 py-1 font-mono text-[10px] font-bold tracking-widest text-bounty uppercase">
+                        missed
                       </span>
                       <form
                         action={async () => {
@@ -88,11 +107,11 @@ export default async function FriendPage({
                       >
                         <button
                           type="submit"
-                          className={`text-xs font-medium underline-offset-2 hover:underline ${
-                            result.debtPaid ? "text-neutral-500" : "text-neutral-900"
+                          className={`font-mono text-[10px] font-bold tracking-widest uppercase underline-offset-4 hover:underline ${
+                            result.debtPaid ? "text-text-faint" : "text-text-primary"
                           }`}
                         >
-                          {result.debtPaid ? "Paid ✓ (undo)" : "Mark $5 paid"}
+                          {result.debtPaid ? "paid ✓ (undo)" : "mark $5 paid"}
                         </button>
                       </form>
                     </>
@@ -104,7 +123,7 @@ export default async function FriendPage({
         </ul>
       )}
 
-      <p className="mt-6 text-xs text-neutral-400">
+      <p className="mt-8 font-mono text-xs text-text-faint">
         Goal is {DAILY_GOAL_POINTS}+ points/day (easy=1, medium=2, hard=3).
       </p>
     </main>

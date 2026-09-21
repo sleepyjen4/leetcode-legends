@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "./db";
 import {
   fetchAllProblemDifficulties,
@@ -11,22 +12,27 @@ export const GROUP_TIMEZONE = process.env.GROUP_TIMEZONE || "UTC";
 
 const CACHE_STALE_MS = 7 * 24 * 60 * 60 * 1000;
 
+// ~4000 LeetCode problems. One upsert query per row (the previous approach)
+// meant thousands of round trips to Neon's serverless Postgres, which was
+// slow enough to hit the connection's idle/statement timeout mid-transaction.
+// A single multi-row INSERT ... ON CONFLICT per batch does the same work in
+// a handful of round trips.
 export async function refreshProblemCache(): Promise<void> {
   const map = await fetchAllProblemDifficulties();
   const entries = Array.from(map.entries());
 
-  const BATCH_SIZE = 500;
+  const BATCH_SIZE = 1000;
   for (let i = 0; i < entries.length; i += BATCH_SIZE) {
     const batch = entries.slice(i, i + BATCH_SIZE);
-    await prisma.$transaction(
-      batch.map(([titleSlug, difficulty]) =>
-        prisma.problemCache.upsert({
-          where: { titleSlug },
-          update: { difficulty },
-          create: { titleSlug, difficulty },
-        })
-      )
+    const rows = Prisma.join(
+      batch.map(([titleSlug, difficulty]) => Prisma.sql`(${titleSlug}, ${difficulty}, now())`)
     );
+    await prisma.$executeRaw`
+      INSERT INTO "ProblemCache" ("titleSlug", "difficulty", "updatedAt")
+      VALUES ${rows}
+      ON CONFLICT ("titleSlug")
+      DO UPDATE SET "difficulty" = EXCLUDED."difficulty", "updatedAt" = now()
+    `;
   }
 }
 
