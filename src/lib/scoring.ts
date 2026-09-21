@@ -112,9 +112,13 @@ export async function syncAllFriends(dateStr: string) {
   for (const friend of friends) {
     try {
       const result = await syncFriendForDate(friend, dateStr);
-      results.push({ friend: friend.name, ...result });
+      results.push({ friend: friend.name, discordId: friend.discordId, ...result });
     } catch (err) {
-      results.push({ friend: friend.name, error: (err as Error).message });
+      results.push({
+        friend: friend.name,
+        discordId: friend.discordId,
+        error: (err as Error).message,
+      });
     }
   }
   return { date: dateStr, results };

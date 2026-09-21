@@ -12,6 +12,7 @@ model Friend {
   id               String        @id @default(cuid())
   name             String
   leetcodeUsername String        @unique
+  discordId        String? // Discord user snowflake, for @mentioning them in reminders. Optional.
   createdAt        DateTime      @default(now())
   results          DailyResult[]
 }
@@ -37,6 +38,9 @@ model ProblemCache {
 }
 
 model NotificationLog {
-  date   DateTime @id // the day the notification summarizes, midnight UTC
+  date   DateTime // the day the notification is about, midnight UTC
+  type   String // "summary" (yesterday's results) | "reminder" (still-behind nudge)
   sentAt DateTime @default(now())
+
+  @@id([date, type])
 }

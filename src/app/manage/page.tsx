@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { addFriend, deleteFriend } from "@/lib/actions";
+import { addFriend, deleteFriend, updateFriendDiscordId } from "@/lib/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +58,20 @@ export default async function ManagePage() {
             className="mt-1.5 w-full border border-border bg-bg px-3 py-2 font-mono text-sm text-text-primary outline-none placeholder:text-text-faint focus:border-legend"
           />
         </div>
+        <div className="flex-1">
+          <label
+            htmlFor="discordId"
+            className="block font-mono text-[10px] tracking-widest text-text-muted uppercase"
+          >
+            Discord ID (optional)
+          </label>
+          <input
+            id="discordId"
+            name="discordId"
+            placeholder="123456789012345678"
+            className="mt-1.5 w-full border border-border bg-bg px-3 py-2 font-mono text-sm text-text-primary outline-none placeholder:text-text-faint focus:border-legend"
+          />
+        </div>
         <button
           type="submit"
           className="border border-border-strong bg-legend-dim px-5 py-2 font-mono text-xs font-bold tracking-[0.2em] text-legend uppercase transition-all hover:shadow-[0_0_20px_rgba(93,255,160,0.25)]"
@@ -75,7 +89,7 @@ export default async function ManagePage() {
           {friends.map((friend, i) => (
             <li
               key={friend.id}
-              className="rise-in flex items-center justify-between gap-4 border border-border bg-surface px-4 py-3"
+              className="rise-in flex flex-col gap-3 border border-border bg-surface px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
               style={{ animationDelay: `${180 + i * 60}ms` }}
             >
               <div className="min-w-0">
@@ -86,19 +100,41 @@ export default async function ManagePage() {
                   @{friend.leetcodeUsername}
                 </p>
               </div>
-              <form
-                action={async () => {
-                  "use server";
-                  await deleteFriend(friend.id);
-                }}
-              >
-                <button
-                  type="submit"
-                  className="shrink-0 border border-bounty/30 px-3 py-1.5 font-mono text-[10px] font-bold tracking-widest text-bounty uppercase transition-colors hover:bg-bounty-dim"
+              <div className="flex shrink-0 items-center gap-2">
+                <form
+                  action={async (formData: FormData) => {
+                    "use server";
+                    await updateFriendDiscordId(friend.id, formData);
+                  }}
+                  className="flex items-center gap-1.5"
                 >
-                  remove
-                </button>
-              </form>
+                  <input
+                    name="discordId"
+                    defaultValue={friend.discordId ?? ""}
+                    placeholder="Discord ID"
+                    className="w-36 border border-border bg-bg px-2 py-1.5 font-mono text-xs text-text-primary outline-none placeholder:text-text-faint focus:border-legend"
+                  />
+                  <button
+                    type="submit"
+                    className="border border-border-strong px-2.5 py-1.5 font-mono text-[10px] font-bold tracking-widest text-text-muted uppercase transition-colors hover:text-legend"
+                  >
+                    save
+                  </button>
+                </form>
+                <form
+                  action={async () => {
+                    "use server";
+                    await deleteFriend(friend.id);
+                  }}
+                >
+                  <button
+                    type="submit"
+                    className="border border-bounty/30 px-3 py-1.5 font-mono text-[10px] font-bold tracking-widest text-bounty uppercase transition-colors hover:bg-bounty-dim"
+                  >
+                    remove
+                  </button>
+                </form>
+              </div>
             </li>
           ))}
         </ul>
