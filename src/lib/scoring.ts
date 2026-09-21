@@ -13,11 +13,6 @@ export const GROUP_TIMEZONE = process.env.GROUP_TIMEZONE || "UTC";
 
 const CACHE_STALE_MS = 7 * 24 * 60 * 60 * 1000;
 
-// ~4000 LeetCode problems. One upsert query per row (the previous approach)
-// meant thousands of round trips to Neon's serverless Postgres, which was
-// slow enough to hit the connection's idle/statement timeout mid-transaction.
-// A single multi-row INSERT ... ON CONFLICT per batch does the same work in
-// a handful of round trips.
 export async function refreshProblemCache(): Promise<void> {
   const map = await fetchAllProblemDifficulties();
   const entries = Array.from(map.entries());
@@ -26,7 +21,10 @@ export async function refreshProblemCache(): Promise<void> {
   for (let i = 0; i < entries.length; i += BATCH_SIZE) {
     const batch = entries.slice(i, i + BATCH_SIZE);
     const rows = Prisma.join(
-      batch.map(([titleSlug, difficulty]) => Prisma.sql`(${titleSlug}, ${difficulty}, now())`)
+      batch.map(
+        ([titleSlug, difficulty]) =>
+          Prisma.sql`(${titleSlug}, ${difficulty}, now())`,
+      ),
     );
     await prisma.$executeRaw`
       INSERT INTO "ProblemCache" ("titleSlug", "difficulty", "updatedAt")
@@ -41,7 +39,10 @@ export async function ensureProblemCache(): Promise<void> {
   const mostRecent = await prisma.problemCache.findFirst({
     orderBy: { updatedAt: "desc" },
   });
-  if (!mostRecent || Date.now() - mostRecent.updatedAt.getTime() > CACHE_STALE_MS) {
+  if (
+    !mostRecent ||
+    Date.now() - mostRecent.updatedAt.getTime() > CACHE_STALE_MS
+  ) {
     await refreshProblemCache();
   }
 }
@@ -61,12 +62,15 @@ export interface SyncResult {
 
 export async function syncFriendForDate(
   friend: { id: string; leetcodeUsername: string },
-  dateStr: string
+  dateStr: string,
 ): Promise<SyncResult> {
   const dayStart = zonedMidnightUtc(dateStr, GROUP_TIMEZONE);
   const dayEnd = zonedMidnightUtc(addDays(dateStr, 1), GROUP_TIMEZONE);
 
-  const submissions = await fetchRecentAcSubmissions(friend.leetcodeUsername, 50);
+  const submissions = await fetchRecentAcSubmissions(
+    friend.leetcodeUsername,
+    50,
+  );
   const slugsToday = new Set<string>();
   for (const s of submissions) {
     const ts = new Date(Number(s.timestamp) * 1000);
@@ -145,12 +149,17 @@ export interface FriendStats {
 // Centralizes the derived stats both the dashboard and the friend page need
 // from a friend's DailyResult history, so "today's status", "$ owed", and
 // "current streak" are all computed the same way in one place.
-export function computeFriendStats(results: ResultLike[], todayStr: string): FriendStats {
+export function computeFriendStats(
+  results: ResultLike[],
+  todayStr: string,
+): FriendStats {
   const todayStart = zonedMidnightUtc(todayStr, GROUP_TIMEZONE);
-  const todayResult = results.find((r) => r.date.getTime() === todayStart.getTime());
+  const todayResult = results.find(
+    (r) => r.date.getTime() === todayStart.getTime(),
+  );
 
   const owedDays = results.filter(
-    (r) => !r.metGoal && !r.debtPaid && r.date.getTime() < todayStart.getTime()
+    (r) => !r.metGoal && !r.debtPaid && r.date.getTime() < todayStart.getTime(),
   ).length;
 
   const metByDate = new Map<string, boolean>();
