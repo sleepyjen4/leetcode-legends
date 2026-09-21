@@ -35,3 +35,8 @@ model ProblemCache {
   difficulty String // "Easy" | "Medium" | "Hard"
   updatedAt  DateTime @updatedAt
 }
+
+model NotificationLog {
+  date   DateTime @id // the day the notification summarizes, midnight UTC
+  sentAt DateTime @default(now())
+}

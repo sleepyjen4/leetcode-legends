@@ -146,9 +146,6 @@ export interface FriendStats {
   currentStreak: number;
 }
 
-// Centralizes the derived stats both the dashboard and the friend page need
-// from a friend's DailyResult history, so "today's status", "$ owed", and
-// "current streak" are all computed the same way in one place.
 export function computeFriendStats(
   results: ResultLike[],
   todayStr: string,
