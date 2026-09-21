@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Friend {
+  id               String        @id @default(cuid())
+  name             String
+  leetcodeUsername String        @unique
+  createdAt        DateTime      @default(now())
+  results          DailyResult[]
+}
+
+model DailyResult {
+  id           String   @id @default(cuid())
+  friendId     String
+  friend       Friend   @relation(fields: [friendId], references: [id], onDelete: Cascade)
+  date         DateTime // calendar day being scored, stored at midnight UTC
+  pointsEarned Int
+  problemSlugs String[] // titleSlugs counted toward pointsEarned, for transparency
+  metGoal      Boolean
+  debtPaid     Boolean  @default(false) // only meaningful when metGoal = false
+  createdAt    DateTime @default(now())
+
+  @@unique([friendId, date])
+}
+
+model ProblemCache {
+  titleSlug  String   @id
+  difficulty String // "Easy" | "Medium" | "Hard"
+  updatedAt  DateTime @updatedAt
+}
