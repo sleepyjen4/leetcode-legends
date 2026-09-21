@@ -5,8 +5,9 @@ import {
   fetchRecentAcSubmissions,
   POINTS_BY_DIFFICULTY,
   DAILY_GOAL_POINTS,
+  DEBT_PER_MISSED_DAY,
 } from "./leetcode";
-import { zonedMidnightUtc, addDays } from "./date";
+import { zonedMidnightUtc, addDays, formatDateInTimezone } from "./date";
 
 export const GROUP_TIMEZONE = process.env.GROUP_TIMEZONE || "UTC";
 
@@ -126,4 +127,43 @@ export async function syncRecentDays(todayStr: string) {
     syncAllFriends(todayStr),
   ]);
   return { yesterday, today };
+}
+
+interface ResultLike {
+  date: Date;
+  metGoal: boolean;
+  debtPaid: boolean;
+  pointsEarned: number;
+}
+
+export interface FriendStats {
+  todayResult: ResultLike | undefined;
+  owed: number;
+  currentStreak: number;
+}
+
+// Centralizes the derived stats both the dashboard and the friend page need
+// from a friend's DailyResult history, so "today's status", "$ owed", and
+// "current streak" are all computed the same way in one place.
+export function computeFriendStats(results: ResultLike[], todayStr: string): FriendStats {
+  const todayStart = zonedMidnightUtc(todayStr, GROUP_TIMEZONE);
+  const todayResult = results.find((r) => r.date.getTime() === todayStart.getTime());
+
+  const owedDays = results.filter(
+    (r) => !r.metGoal && !r.debtPaid && r.date.getTime() < todayStart.getTime()
+  ).length;
+
+  const metByDate = new Map<string, boolean>();
+  for (const r of results) {
+    metByDate.set(formatDateInTimezone(r.date, GROUP_TIMEZONE), r.metGoal);
+  }
+
+  let currentStreak = 0;
+  let cursor = metByDate.get(todayStr) ? todayStr : addDays(todayStr, -1);
+  while (metByDate.get(cursor)) {
+    currentStreak++;
+    cursor = addDays(cursor, -1);
+  }
+
+  return { todayResult, owed: owedDays * DEBT_PER_MISSED_DAY, currentStreak };
 }

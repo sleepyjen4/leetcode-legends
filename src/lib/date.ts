@@ -2,14 +2,18 @@
 // group without pulling in a date library. All dates in this app are plain
 // "YYYY-MM-DD" strings representing a calendar day in GROUP_TIMEZONE.
 
-export function todayInTimezone(timeZone: string): string {
+export function formatDateInTimezone(date: Date, timeZone: string): string {
   // en-CA formats as YYYY-MM-DD, which is what we want.
   return new Intl.DateTimeFormat("en-CA", {
     timeZone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(new Date());
+  }).format(date);
+}
+
+export function todayInTimezone(timeZone: string): string {
+  return formatDateInTimezone(new Date(), timeZone);
 }
 
 export function addDays(dateStr: string, days: number): string {

@@ -1,15 +1,15 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { GROUP_TIMEZONE } from "@/lib/scoring";
-import { todayInTimezone, zonedMidnightUtc } from "@/lib/date";
+import { GROUP_TIMEZONE, computeFriendStats } from "@/lib/scoring";
+import { todayInTimezone } from "@/lib/date";
 import { DAILY_GOAL_POINTS, DEBT_PER_MISSED_DAY } from "@/lib/leetcode";
 import { triggerSyncNow } from "@/lib/actions";
+import { StreakFlame } from "@/components/StreakFlame";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const todayStr = todayInTimezone(GROUP_TIMEZONE);
-  const todayStart = zonedMidnightUtc(todayStr, GROUP_TIMEZONE);
 
   const friendsRaw = await prisma.friend.findMany({
     include: { results: { orderBy: { date: "desc" } } },
@@ -17,20 +17,10 @@ export default async function DashboardPage() {
   });
 
   const board = friendsRaw
-    .map((friend) => {
-      const todayResult = friend.results.find(
-        (r) => r.date.getTime() === todayStart.getTime(),
-      );
-      const owedDays = friend.results.filter(
-        (r) =>
-          !r.metGoal && !r.debtPaid && r.date.getTime() < todayStart.getTime(),
-      ).length;
-      return {
-        friend,
-        todayResult,
-        owed: owedDays * DEBT_PER_MISSED_DAY,
-      };
-    })
+    .map((friend) => ({
+      friend,
+      ...computeFriendStats(friend.results, todayStr),
+    }))
     .sort(
       (a, b) =>
         (b.todayResult?.pointsEarned ?? -1) -
@@ -72,7 +62,7 @@ export default async function DashboardPage() {
       >
         <button
           type="submit"
-          className="group relative overflow-hidden border border-border-strong bg-surface px-5 py-2.5 font-mono text-xs font-bold tracking-[0.2em] text-legend uppercase transition-all hover:bg-legend-dim hover:shadow-[0_0_20px_rgba(93,255,160,0.25)]"
+          className="cursor-pointer group relative overflow-hidden border border-border-strong bg-surface px-5 py-2.5 font-mono text-xs font-bold tracking-[0.2em] text-legend uppercase transition-all hover:bg-legend-dim hover:shadow-[0_0_20px_rgba(93,255,160,0.25)]"
         >
           <span className="relative z-10">▸ sync now</span>
         </button>
@@ -104,7 +94,7 @@ export default async function DashboardPage() {
         </p>
       ) : (
         <ul className="flex flex-col gap-2.5">
-          {board.map(({ friend, todayResult, owed }, i) => {
+          {board.map(({ friend, todayResult, owed, currentStreak }, i) => {
             let statusLabel: string;
             let statusClass: string;
             let animatePending = false;
@@ -141,8 +131,9 @@ export default async function DashboardPage() {
                   </span>
 
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-display text-base font-semibold text-text-primary">
+                    <p className="flex items-center gap-2 truncate font-display text-base font-semibold text-text-primary">
                       {friend.name}
+                      {currentStreak >= 2 && <StreakFlame streak={currentStreak} />}
                     </p>
                     <p className="truncate font-mono text-xs text-text-faint">
                       @{friend.leetcodeUsername}

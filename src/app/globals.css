@@ -144,3 +144,28 @@ body::before {
 .hex-badge {
   clip-path: polygon(22% 0%, 78% 0%, 100% 50%, 78% 100%, 22% 100%, 0% 50%);
 }
+
+@keyframes flame-flicker {
+  0%,
+  100% {
+    transform: scale(1, 1) rotate(-2deg);
+    opacity: 1;
+  }
+  20% {
+    transform: scale(0.94, 1.06) rotate(2deg);
+    opacity: 0.92;
+  }
+  45% {
+    transform: scale(1.05, 0.95) rotate(-1deg);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(0.96, 1.04) rotate(3deg);
+    opacity: 0.9;
+  }
+}
+
+.flame-flicker {
+  animation: flame-flicker 1.8s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
