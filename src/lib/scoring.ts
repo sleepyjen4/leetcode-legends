@@ -6,6 +6,7 @@ import {
   POINTS_BY_DIFFICULTY,
   DAILY_GOAL_POINTS,
   DEBT_PER_MISSED_DAY,
+  type RecentAcSubmission,
 } from "./leetcode";
 import { zonedMidnightUtc, addDays, formatDateInTimezone } from "./date";
 
@@ -54,6 +55,33 @@ async function difficultyFor(titleSlug: string): Promise<string> {
   return cached?.difficulty ?? "Easy";
 }
 
+// Stores the earliest accepted timestamp seen per problem. On conflict we keep
+// the older timestamp, so a later re-submission never overwrites it.
+async function recordFirstAccepted(
+  friendId: string,
+  submissions: RecentAcSubmission[],
+): Promise<void> {
+  const earliest = new Map<string, Date>();
+  for (const s of submissions) {
+    const ts = new Date(Number(s.timestamp) * 1000);
+    const prev = earliest.get(s.titleSlug);
+    if (!prev || ts < prev) earliest.set(s.titleSlug, ts);
+  }
+  if (earliest.size === 0) return;
+
+  const rows = Prisma.join(
+    Array.from(earliest.entries()).map(
+      ([titleSlug, ts]) => Prisma.sql`(${friendId}, ${titleSlug}, ${ts})`,
+    ),
+  );
+  await prisma.$executeRaw`
+    INSERT INTO "SolvedProblem" ("friendId", "titleSlug", "firstAcceptedAt")
+    VALUES ${rows}
+    ON CONFLICT ("friendId", "titleSlug")
+    DO UPDATE SET "firstAcceptedAt" = LEAST("SolvedProblem"."firstAcceptedAt", EXCLUDED."firstAcceptedAt")
+  `;
+}
+
 export interface SyncResult {
   pointsEarned: number;
   metGoal: boolean;
@@ -71,17 +99,21 @@ export async function syncFriendForDate(
     friend.leetcodeUsername,
     50,
   );
-  const slugsToday = new Set<string>();
-  for (const s of submissions) {
-    const ts = new Date(Number(s.timestamp) * 1000);
-    if (ts >= dayStart && ts < dayEnd) {
-      slugsToday.add(s.titleSlug);
-    }
-  }
+  await recordFirstAccepted(friend.id, submissions);
+
+  // Only problems whose *first* accepted submission fell on this day count,
+  // so re-solving an old problem never moves it to a new day.
+  const solvedToday = await prisma.solvedProblem.findMany({
+    where: {
+      friendId: friend.id,
+      firstAcceptedAt: { gte: dayStart, lt: dayEnd },
+    },
+    orderBy: { firstAcceptedAt: "asc" },
+  });
 
   let pointsEarned = 0;
   const problemSlugs: string[] = [];
-  for (const slug of slugsToday) {
+  for (const { titleSlug: slug } of solvedToday) {
     const difficulty = await difficultyFor(slug);
     pointsEarned += POINTS_BY_DIFFICULTY[difficulty] ?? 1;
     problemSlugs.push(slug);
@@ -112,7 +144,11 @@ export async function syncAllFriends(dateStr: string) {
   for (const friend of friends) {
     try {
       const result = await syncFriendForDate(friend, dateStr);
-      results.push({ friend: friend.name, discordId: friend.discordId, ...result });
+      results.push({
+        friend: friend.name,
+        discordId: friend.discordId,
+        ...result,
+      });
     } catch (err) {
       results.push({
         friend: friend.name,

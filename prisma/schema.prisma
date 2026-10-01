@@ -15,6 +15,17 @@ model Friend {
   discordId        String? // Discord user snowflake, for @mentioning them in reminders. Optional.
   createdAt        DateTime      @default(now())
   results          DailyResult[]
+  solvedProblems   SolvedProblem[]
+}
+
+// First accepted submissions only!
+model SolvedProblem {
+  friendId        String
+  friend          Friend   @relation(fields: [friendId], references: [id], onDelete: Cascade)
+  titleSlug       String
+  firstAcceptedAt DateTime
+
+  @@id([friendId, titleSlug])
 }
 
 model DailyResult {
