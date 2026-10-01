@@ -15,6 +15,12 @@ export const dynamic = "force-dynamic";
 
 const DAYS_PER_PAGE = 7;
 
+const DIFFICULTY_TAG_CLASSES: Record<string, string> = {
+  Easy: "border-legend/40 bg-legend-dim text-legend",
+  Medium: "border-medium/40 bg-medium-dim text-medium",
+  Hard: "border-bounty/40 bg-bounty-dim text-bounty",
+};
+
 export default async function FriendPage({
   params,
   searchParams,
@@ -50,6 +56,13 @@ export default async function FriendPage({
   const pageResults = friend.results.slice(
     (page - 1) * DAYS_PER_PAGE,
     page * DAYS_PER_PAGE,
+  );
+
+  const cachedDifficulties = await prisma.problemCache.findMany({
+    where: { titleSlug: { in: pageResults.flatMap((r) => r.problemSlugs) } },
+  });
+  const difficultyBySlug = new Map(
+    cachedDifficulties.map((p) => [p.titleSlug, p.difficulty]),
   );
 
   return (
@@ -130,18 +143,28 @@ export default async function FriendPage({
                         {result.problemSlugs.length === 1 ? "" : "s"}
                       </summary>
                       <ul className="mt-2 flex flex-col gap-1.5 border-l border-border pl-3">
-                        {result.problemSlugs.map((slug: string) => (
-                          <li key={slug}>
-                            <a
-                              href={leetcodeProblemUrl(slug)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="font-mono text-xs text-legend underline-offset-2 hover:underline"
-                            >
-                              {slugToTitle(slug)} ↗
-                            </a>
-                          </li>
-                        ))}
+                        {result.problemSlugs.map((slug: string) => {
+                          const difficulty = difficultyBySlug.get(slug);
+                          return (
+                            <li key={slug} className="flex items-center gap-2">
+                              {difficulty && (
+                                <span
+                                  className={`border px-1.5 py-px font-mono text-[9px] font-bold tracking-widest uppercase ${DIFFICULTY_TAG_CLASSES[difficulty] ?? ""}`}
+                                >
+                                  {difficulty}
+                                </span>
+                              )}
+                              <a
+                                href={leetcodeProblemUrl(slug)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-mono text-xs text-legend underline-offset-2 hover:underline"
+                              >
+                                {slugToTitle(slug)} ↗
+                              </a>
+                            </li>
+                          );
+                        })}
                       </ul>
                     </details>
                   )}

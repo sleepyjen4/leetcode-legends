@@ -16,6 +16,8 @@
   --bounty-dim: rgba(255, 77, 109, 0.12);
   --pending: #ffc857;
   --pending-dim: rgba(255, 200, 87, 0.12);
+  --medium: #ff9f43;
+  --medium-dim: rgba(255, 159, 67, 0.12);
 
   --font-display: var(--font-chakra), "Chakra Petch", sans-serif;
   --font-mono: var(--font-jbmono), "JetBrains Mono", monospace;
@@ -36,6 +38,8 @@
   --color-bounty-dim: var(--bounty-dim);
   --color-pending: var(--pending);
   --color-pending-dim: var(--pending-dim);
+  --color-medium: var(--medium);
+  --color-medium-dim: var(--medium-dim);
   --font-display: var(--font-display);
   --font-mono: var(--font-mono);
 }
