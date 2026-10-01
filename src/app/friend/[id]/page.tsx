@@ -13,12 +13,17 @@ import { StreakFlame } from "@/components/StreakFlame";
 
 export const dynamic = "force-dynamic";
 
+const DAYS_PER_PAGE = 7;
+
 export default async function FriendPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { id } = await params;
+  const { page: pageParam } = await searchParams;
 
   const friend = await prisma.friend.findUnique({
     where: { id },
@@ -31,6 +36,21 @@ export default async function FriendPage({
   const todayStart = zonedMidnightUtc(todayStr, GROUP_TIMEZONE);
 
   const { owed, currentStreak } = computeFriendStats(friend.results, todayStr);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(friend.results.length / DAYS_PER_PAGE),
+  );
+  const requestedPage = Number(
+    Array.isArray(pageParam) ? pageParam[0] : pageParam,
+  );
+  const page = Number.isInteger(requestedPage)
+    ? Math.min(Math.max(requestedPage, 1), totalPages)
+    : 1;
+  const pageResults = friend.results.slice(
+    (page - 1) * DAYS_PER_PAGE,
+    page * DAYS_PER_PAGE,
+  );
 
   return (
     <main className="relative z-10 mx-auto w-full max-w-2xl flex-1 px-5 py-14 sm:py-20">
@@ -83,7 +103,7 @@ export default async function FriendPage({
         </p>
       ) : (
         <ul className="flex flex-col gap-2.5">
-          {friend.results.map((result, i) => {
+          {pageResults.map((result, i) => {
             const isToday = result.date.getTime() === todayStart.getTime();
             return (
               <li
@@ -164,6 +184,51 @@ export default async function FriendPage({
             );
           })}
         </ul>
+      )}
+
+      {totalPages > 1 && (
+        <nav
+          aria-label="Day log pages"
+          className="mt-5 flex items-center justify-end gap-1.5"
+        >
+          {page > 1 && (
+            <Link
+              href={`?page=${page - 1}`}
+              aria-label="Previous page"
+              className="border border-border bg-surface px-2.5 py-1 font-mono text-xs text-text-muted transition-colors hover:border-border-strong hover:text-legend"
+            >
+              ◂
+            </Link>
+          )}
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) =>
+            n === page ? (
+              <span
+                key={n}
+                aria-current="page"
+                className="border border-legend/40 bg-legend-dim px-2.5 py-1 font-mono text-xs font-bold text-legend"
+              >
+                {n}
+              </span>
+            ) : (
+              <Link
+                key={n}
+                href={`?page=${n}`}
+                className="border border-border bg-surface px-2.5 py-1 font-mono text-xs text-text-muted transition-colors hover:border-border-strong hover:text-legend"
+              >
+                {n}
+              </Link>
+            ),
+          )}
+          {page < totalPages && (
+            <Link
+              href={`?page=${page + 1}`}
+              aria-label="Next page"
+              className="border border-border bg-surface px-2.5 py-1 font-mono text-xs text-text-muted transition-colors hover:border-border-strong hover:text-legend"
+            >
+              ▸
+            </Link>
+          )}
+        </nav>
       )}
 
       <p className="mt-8 font-mono text-xs text-text-faint">
